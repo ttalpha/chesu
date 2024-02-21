@@ -4,14 +4,29 @@ import {
   FIRST_WHITE_PAWN_ROW,
 } from "../constants";
 import { CellState, Color, Piece } from "../types";
+import { isOutOfBound, isSameColor } from "./checks";
 
-const isSameColor = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number]
-) => {
-  return board[x][y]?.color === color;
-};
+/**
+  @todo Prevent a piece from moving when it is being pinned with a king
+  * For each loop, create a temporary board and try moving in the temp board
+  * See if the king in check in the temporary board
+  * If in check, then don't add the current move to the list of valid moves
+  * After each iteration, reset the temporary board to the original board
+  */
+
+/**
+  @todo Generate moves that can block the check when the king is in check
+  * For each loop, create a temporary board and try moving in the temp board
+  * If the king is no longer in check, add that move to the board
+  * After each iteration, reset the temporary board to the original board
+  */
+
+/**
+  @todo Detect checkmate
+  * See if the king is being checked
+  * Exhaustively generate all valid moves of all pieces
+  * If there are none, then it's a checkmate
+  */
 
 const generateRookMoves = (
   board: CellState[][],
@@ -19,6 +34,7 @@ const generateRookMoves = (
   [x, y]: [number, number]
 ) => {
   const validMoves: [number, number][] = [];
+
   for (let i = x + 1; i < BOARD_SIZE; i++) {
     if (!isSameColor(board, color, [i, y])) validMoves.push([i, y]);
     if (board[i][y]) break;
@@ -44,31 +60,22 @@ const generateKnightMoves = (
   [x, y]: [number, number]
 ) => {
   const validMoves: [number, number][] = [];
-  if (x + 2 < BOARD_SIZE) {
-    if (y + 1 < BOARD_SIZE && !isSameColor(board, color, [x + 2, y + 1]))
-      validMoves.push([x + 2, y + 1]);
-    if (y - 1 >= 0 && !isSameColor(board, color, [x + 2, y - 1]))
-      validMoves.push([x + 2, y - 1]);
-  }
-  if (x - 2 >= 0) {
-    if (y + 1 < BOARD_SIZE && !isSameColor(board, color, [x - 2, y + 1]))
-      validMoves.push([x - 2, y + 1]);
-    if (y - 1 >= 0 && !isSameColor(board, color, [x - 2, y - 1]))
-      validMoves.push([x - 2, y - 1]);
-  }
-  if (x + 1 < BOARD_SIZE) {
-    if (y + 2 < BOARD_SIZE && !isSameColor(board, color, [x + 1, y + 2]))
-      validMoves.push([x + 1, y + 2]);
-    if (y - 2 >= 0 && !isSameColor(board, color, [x + 1, y - 2]))
-      validMoves.push([x + 1, y - 2]);
-  }
-
-  if (x - 1 >= 0) {
-    if (y + 2 < BOARD_SIZE && !isSameColor(board, color, [x - 1, y + 2]))
-      validMoves.push([x - 1, y + 2]);
-    if (y - 2 >= 0 && !isSameColor(board, color, [x - 1, y - 2]))
-      validMoves.push([x - 1, y - 2]);
-  }
+  if (!isSameColor(board, color, [x + 2, y + 1]))
+    validMoves.push([x + 2, y + 1]);
+  if (!isSameColor(board, color, [x + 2, y - 1]))
+    validMoves.push([x + 2, y - 1]);
+  if (!isSameColor(board, color, [x - 2, y + 1]))
+    validMoves.push([x - 2, y + 1]);
+  if (!isSameColor(board, color, [x - 2, y - 1]))
+    validMoves.push([x - 2, y - 1]);
+  if (!isSameColor(board, color, [x + 1, y + 2]))
+    validMoves.push([x + 1, y + 2]);
+  if (!isSameColor(board, color, [x + 1, y - 2]))
+    validMoves.push([x + 1, y - 2]);
+  if (!isSameColor(board, color, [x - 1, y + 2]))
+    validMoves.push([x - 1, y + 2]);
+  if (!isSameColor(board, color, [x - 1, y - 2]))
+    validMoves.push([x - 1, y - 2]);
   return validMoves;
 };
 
@@ -79,32 +86,25 @@ const generateBishopMoves = (
 ) => {
   const validMoves: [number, number][] = [];
   for (let i = 1; i < BOARD_SIZE; i++) {
-    if (x + i >= BOARD_SIZE || y + i >= BOARD_SIZE) break;
     if (!isSameColor(board, color, [x + i, y + i]))
       validMoves.push([x + i, y + i]);
-    if (board[x + i][y + i]) break;
+    if (!isOutOfBound([x + i, y + i]) && board[x + i][y + i]) break;
   }
   for (let i = 1; i < BOARD_SIZE; i++) {
-    if (x + i >= BOARD_SIZE || y - i < 0) break;
     if (!isSameColor(board, color, [x + i, y - i]))
       validMoves.push([x + i, y - i]);
-    if (board[x + i][y - i]) break;
+    if (!isOutOfBound([x + i, y - i]) && board[x + i][y - i]) break;
   }
   for (let i = 1; i < BOARD_SIZE; i++) {
-    if (x - i < 0 || y + i >= BOARD_SIZE) break;
     if (!isSameColor(board, color, [x - i, y + i]))
       validMoves.push([x - i, y + i]);
-    if (board[x - i][y + i]) break;
+    if (!isOutOfBound([x - i, y + i]) && board[x - i][y + i]) break;
   }
   for (let i = 1; i < BOARD_SIZE; i++) {
-    if (x - i < 0 || y - i < 0) break;
     if (!isSameColor(board, color, [x - i, y - i]))
       validMoves.push([x - i, y - i]);
-    if (board[x - i][y - i]) break;
+    if (!isOutOfBound([x - i, y - i]) && board[x - i][y - i]) break;
   }
-  console.log({
-    validMoves,
-  });
   return validMoves;
 };
 
@@ -124,25 +124,18 @@ const generateKingMoves = (
   [x, y]: [number, number]
 ) => {
   const validMoves: [number, number][] = [];
-  if (x > 0 && !isSameColor(board, color, [x - 1, y]))
-    validMoves.push([x - 1, y]);
-  if (x > 0 && !isSameColor(board, color, [x - 1, y - 1]))
+  if (!isSameColor(board, color, [x - 1, y])) validMoves.push([x - 1, y]);
+  if (!isSameColor(board, color, [x - 1, y - 1]))
     validMoves.push([x - 1, y - 1]);
-  if (x > 0 && !isSameColor(board, color, [x - 1, y + 1]))
+  if (!isSameColor(board, color, [x - 1, y + 1]))
     validMoves.push([x - 1, y + 1]);
-  if (x > 0 && !isSameColor(board, color, [x - 1, y]))
-    validMoves.push([x - 1, y]);
-  if (y > 0 && !isSameColor(board, color, [x, y - 1]))
-    validMoves.push([x, y - 1]);
-  if (y + 1 < BOARD_SIZE && !isSameColor(board, color, [x, y + 1]))
-    validMoves.push([x, y + 1]);
-  if (x + 1 < BOARD_SIZE && y > 0 && !isSameColor(board, color, [x + 1, y - 1]))
+  if (!isSameColor(board, color, [x - 1, y])) validMoves.push([x - 1, y]);
+  if (!isSameColor(board, color, [x, y - 1])) validMoves.push([x, y - 1]);
+  if (!isSameColor(board, color, [x, y + 1])) validMoves.push([x, y + 1]);
+  if (!isSameColor(board, color, [x + 1, y - 1]))
     validMoves.push([x + 1, y - 1]);
-  if (
-    x + 1 < BOARD_SIZE &&
-    y + 1 < BOARD_SIZE &&
-    !isSameColor(board, color, [x + 1, y + 1])
-  )
+  if (!isSameColor(board, color, [x + 1, y])) validMoves.push([x + 1, y]);
+  if (!isSameColor(board, color, [x + 1, y + 1]))
     validMoves.push([x + 1, y + 1]);
   return validMoves;
 };
@@ -156,36 +149,30 @@ const generatePawnMoves = (
   if (color === Color.Black) {
     if (x === FIRST_BLACK_PAWN_ROW && !board[x + 2][y])
       validMoves.push([x + 2, y]);
-    if (x + 1 < BOARD_SIZE) {
-      const hasLeftEnemyPiece =
-        y - 1 >= 0 &&
-        board[x + 1][y - 1] &&
-        board[x + 1][y - 1]?.color === Color.White;
-      const hasRightEnemyPiece =
-        y + 1 < BOARD_SIZE &&
-        board[x + 1][y + 1] &&
-        board[x + 1][y + 1]?.color === Color.White;
-      if (hasLeftEnemyPiece) validMoves.push([x + 1, y - 1]);
-      if (hasRightEnemyPiece) validMoves.push([x + 1, y + 1]);
-      if (!board[x + 1][y]) validMoves.push([x + 1, y]);
-    }
+    const hasLeftEnemyPiece =
+      !isOutOfBound([x + 1, y - 1]) &&
+      board[x + 1][y - 1]?.color === Color.White;
+    const hasRightEnemyPiece =
+      !isOutOfBound([x + 1, y + 1]) &&
+      board[x + 1][y + 1]?.color === Color.White;
+    if (hasLeftEnemyPiece) validMoves.push([x + 1, y - 1]);
+    if (hasRightEnemyPiece) validMoves.push([x + 1, y + 1]);
+    if (!isOutOfBound([x + 1, y]) && !board[x + 1][y])
+      validMoves.push([x + 1, y]);
   } else {
     if (x === FIRST_WHITE_PAWN_ROW && !board[x - 2][y])
       validMoves.push([x - 2, y]);
-    if (x - 1 >= 0) {
-      const hasLeftEnemyPiece =
-        y - 1 >= 0 &&
-        board[x - 1][y - 1] &&
-        board[x - 1][y - 1]?.color === Color.Black;
+    const hasLeftEnemyPiece =
+      !isOutOfBound([x - 1, y - 1]) &&
+      board[x - 1][y - 1]?.color === Color.Black;
 
-      const hasRightEnemyPiece =
-        y + 1 < BOARD_SIZE &&
-        board[x - 1][y + 1] &&
-        board[x - 1][y + 1]?.color === Color.Black;
-      if (hasLeftEnemyPiece) validMoves.push([x - 1, y - 1]);
-      if (hasRightEnemyPiece) validMoves.push([x - 1, y + 1]);
-      if (!board[x - 1][y]) validMoves.push([x - 1, y]);
-    }
+    const hasRightEnemyPiece =
+      !isOutOfBound([x - 1, y + 1]) &&
+      board[x - 1][y + 1]?.color === Color.Black;
+    if (hasLeftEnemyPiece) validMoves.push([x - 1, y - 1]);
+    if (hasRightEnemyPiece) validMoves.push([x - 1, y + 1]);
+    if (!isOutOfBound([x - 1, y]) && !board[x - 1][y])
+      validMoves.push([x - 1, y]);
   }
   return validMoves;
 };

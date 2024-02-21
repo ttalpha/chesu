@@ -1,9 +1,7 @@
 import { cn } from "@/lib/utils";
-import { ChessPiece } from "./piece";
-import { CellState, Color } from "./types";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { useGameStore } from "./hooks";
+import { useDroppable } from "@dnd-kit/core";
 import { DraggablePiece } from "./draggable-piece";
+import { CellState } from "./types";
 
 interface BoardCellProps {
   cellState: CellState;

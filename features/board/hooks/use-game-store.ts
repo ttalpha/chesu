@@ -27,7 +27,8 @@ export const useGameStore = create<State & Action>()(
     ...initialStates,
     changeTurn: () =>
       set((state) => {
-        state.currentTurn = Color.White ? Color.Black : Color.White;
+        if (state.currentTurn === Color.White) state.currentTurn = Color.Black;
+        else state.currentTurn = Color.White;
       }),
     movePiece: ([oldX, oldY], [newX, newY]) =>
       set((state) => {

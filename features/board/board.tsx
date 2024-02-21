@@ -3,8 +3,9 @@ import { DndContext, useDndMonitor } from "@dnd-kit/core";
 import { BoardCell } from "./cell";
 import { useGameStore } from "./hooks";
 import { useState } from "react";
-import { PieceMetadata } from "./types";
+import { Color, Piece, PieceMetadata } from "./types";
 import { generateMoves } from "./utils";
+import { FIRST_WHITE_KING_POSITION } from "./constants";
 
 export const Board = () => {
   return (
@@ -18,17 +19,24 @@ function BoardContext() {
   const board = useGameStore.getState().board;
   const currentTurn = useGameStore.getState().currentTurn;
   const movePiece = useGameStore.getState().movePiece;
+  const changeTurn = useGameStore.getState().changeTurn;
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
+  const [whiteKingPosition, setWhiteKingPosition] = useState<[number, number]>(
+    FIRST_WHITE_KING_POSITION
+  );
+  const [blackKingPosition, setBlackKingPosition] = useState<[number, number]>(
+    FIRST_WHITE_KING_POSITION
+  );
 
   useDndMonitor({
     onDragStart(event) {
       const { row, col, boardPiece } = event.active.data
         .current as PieceMetadata;
-      if (boardPiece.color !== currentTurn) return;
-      setValidMoves(() =>
-        generateMoves(board, currentTurn, boardPiece.piece, [row, col])
-      );
-      console.log({ row, col, boardPiece });
+      if (boardPiece.color !== currentTurn) setValidMoves([]);
+      else
+        setValidMoves(
+          generateMoves(board, currentTurn, boardPiece.piece, [row, col])
+        );
     },
     onDragMove(event) {},
     onDragOver(event) {},
@@ -38,8 +46,17 @@ function BoardContext() {
         .current as PieceMetadata;
       if (boardPiece.color !== currentTurn) return;
       const [newRow, newCol] = event.over.id.toString().split("-");
-      setValidMoves([]);
-      movePiece([row, col], [+newRow, +newCol]);
+      if (validMoves.some(([x, y]) => +newRow === x && +newCol === y)) {
+        if (boardPiece.piece === Piece.King) {
+          if (boardPiece.color === Color.White)
+            setWhiteKingPosition([+newRow, +newCol]);
+          if (boardPiece.color === Color.Black)
+            setBlackKingPosition([+newRow, +newCol]);
+        }
+        setValidMoves([]);
+        movePiece([row, col], [+newRow, +newCol]);
+        changeTurn();
+      }
     },
     onDragCancel(event) {
       setValidMoves([]);
