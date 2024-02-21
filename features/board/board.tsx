@@ -5,7 +5,10 @@ import { useGameStore } from "./hooks";
 import { useState } from "react";
 import { Color, Piece, PieceMetadata } from "./types";
 import { generateMoves } from "./utils";
-import { FIRST_WHITE_KING_POSITION } from "./constants";
+import {
+  FIRST_BLACK_KING_POSITION,
+  FIRST_WHITE_KING_POSITION,
+} from "./constants";
 
 export const Board = () => {
   return (
@@ -25,7 +28,7 @@ function BoardContext() {
     FIRST_WHITE_KING_POSITION
   );
   const [blackKingPosition, setBlackKingPosition] = useState<[number, number]>(
-    FIRST_WHITE_KING_POSITION
+    FIRST_BLACK_KING_POSITION
   );
 
   useDndMonitor({
@@ -35,11 +38,15 @@ function BoardContext() {
       if (boardPiece.color !== currentTurn) setValidMoves([]);
       else
         setValidMoves(
-          generateMoves(board, currentTurn, boardPiece.piece, [row, col])
+          generateMoves(
+            board,
+            currentTurn,
+            boardPiece.piece,
+            [row, col],
+            currentTurn === Color.White ? whiteKingPosition : blackKingPosition
+          )
         );
     },
-    onDragMove(event) {},
-    onDragOver(event) {},
     onDragEnd(event) {
       if (!event.over?.id) return;
       const { row, col, boardPiece } = event.active.data
