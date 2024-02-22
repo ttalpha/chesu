@@ -51,29 +51,19 @@ const generateRookMoves = ({
 }: MovesGeneratorInput) => {
   let validMoves: [number, number][] = [];
 
-  for (let i = x + 1; i < BOARD_SIZE; i++) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [i, y], kingPosition)
-    );
-    if (board[i][y]) break;
-  }
-  for (let i = x - 1; i >= 0; i--) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [i, y], kingPosition)
-    );
-    if (board[i][y]) break;
-  }
-  for (let i = y + 1; i < BOARD_SIZE; i++) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [x, i], kingPosition)
-    );
-    if (board[x][i]) break;
-  }
-  for (let i = y - 1; i >= 0; i--) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [x, i], kingPosition)
-    );
-    if (board[x][i]) break;
+  for (const [dx, dy] of getPiecesDirection(Piece.Rook, color)) {
+    for (let i = 1; i < BOARD_SIZE; i++) {
+      validMoves = validMoves.concat(
+        addMovesIfNotPinned(
+          board,
+          color,
+          [x, y],
+          [x + dx * i, y + dy * i],
+          kingPosition
+        )
+      );
+      if (board[x + dx * i][y + dy * i]) break;
+    }
   }
   return validMoves;
 };
