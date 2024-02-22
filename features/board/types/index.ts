@@ -1,5 +1,3 @@
-import { VALID_MOVE_FLAG } from "../constants";
-
 export enum Piece {
   Rook = "R",
   Knight = "N",

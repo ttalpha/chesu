@@ -39,11 +39,16 @@ function BoardContext() {
       else
         setValidMoves(
           generateMoves(
-            board,
-            currentTurn,
-            boardPiece.piece,
-            [row, col],
-            currentTurn === Color.White ? whiteKingPosition : blackKingPosition
+            {
+              board,
+              color: currentTurn,
+              kingPosition:
+                currentTurn === Color.White
+                  ? whiteKingPosition
+                  : blackKingPosition,
+              currentPosition: [row, col],
+            },
+            boardPiece.piece
           )
         );
     },

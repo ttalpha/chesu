@@ -8,12 +8,12 @@ import { detectChecks } from "./check-king-safety";
 import { isOutOfBound, isSameColor } from "./checks";
 import { produce } from "immer";
 
-/**
-  @todo Generate moves that can block the check when the king is in check
-  * For each loop, create a temporary board and try moving in the temp board
-  * If the king is no longer in check, add that move to the board
-  * After each iteration, reset the temporary board to the original board
-  */
+interface MovesGeneratorInput {
+  board: CellState[][];
+  color: Color;
+  currentPosition: [number, number];
+  kingPosition: [number, number];
+}
 
 /**
   @todo Detect checkmate
@@ -44,19 +44,17 @@ const addMovesIfNotPinned = (
     draft[newX][newY] = currentCell;
     draft[x][y] = null;
   });
-  if (!detectChecks(tempBoard, color, kingPosition)) {
-    console.log({ newX, newY });
+  if (!detectChecks(tempBoard, color, kingPosition))
     validMoves.push([newX, newY]);
-  }
   return validMoves;
 };
 
-const generateRookMoves = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number],
-  kingPosition: [number, number]
-) => {
+const generateRookMoves = ({
+  board,
+  color,
+  currentPosition: [x, y],
+  kingPosition,
+}: MovesGeneratorInput) => {
   let validMoves: [number, number][] = [];
 
   for (let i = x + 1; i < BOARD_SIZE; i++) {
@@ -86,12 +84,12 @@ const generateRookMoves = (
   return validMoves;
 };
 
-const generateKnightMoves = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number],
-  kingPosition: [number, number]
-) => {
+const generateKnightMoves = ({
+  board,
+  color,
+  currentPosition: [x, y],
+  kingPosition,
+}: MovesGeneratorInput) => {
   const validMoves: [number, number][] = [];
   return validMoves.concat(
     addMovesIfNotPinned(board, color, [x, y], [x + 2, y - 1], kingPosition),
@@ -105,12 +103,12 @@ const generateKnightMoves = (
   );
 };
 
-const generateBishopMoves = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number],
-  kingPosition: [number, number]
-) => {
+const generateBishopMoves = ({
+  board,
+  color,
+  currentPosition: [x, y],
+  kingPosition,
+}: MovesGeneratorInput) => {
   let validMoves: [number, number][] = [];
   for (let i = 1; i < BOARD_SIZE; i++) {
     validMoves = validMoves.concat(
@@ -139,42 +137,36 @@ const generateBishopMoves = (
   return validMoves;
 };
 
-const generateQueenMoves = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number],
-  kingPosition: [number, number]
-) => {
-  return generateRookMoves(board, color, [x, y], kingPosition).concat(
-    generateBishopMoves(board, color, [x, y], kingPosition)
+const generateQueenMoves = (movesGeneratorInput: MovesGeneratorInput) => {
+  return generateRookMoves(movesGeneratorInput).concat(
+    generateBishopMoves(movesGeneratorInput)
   );
 };
 
-const generateKingMoves = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number],
-  kingPosition: [number, number]
-) => {
+const generateKingMoves = ({
+  board,
+  color,
+  currentPosition: [x, y],
+}: MovesGeneratorInput) => {
   const validMoves: [number, number][] = [];
   return validMoves.concat(
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y - 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y + 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x, y - 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x, y + 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y - 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y + 1], kingPosition)
+    addMovesIfNotPinned(board, color, [x, y], [x - 1, y], [x - 1, y]),
+    addMovesIfNotPinned(board, color, [x, y], [x + 1, y], [x + 1, y]),
+    addMovesIfNotPinned(board, color, [x, y], [x - 1, y - 1], [x - 1, y - 1]),
+    addMovesIfNotPinned(board, color, [x, y], [x - 1, y + 1], [x - 1, y + 1]),
+    addMovesIfNotPinned(board, color, [x, y], [x, y - 1], [x, y - 1]),
+    addMovesIfNotPinned(board, color, [x, y], [x, y + 1], [x, y + 1]),
+    addMovesIfNotPinned(board, color, [x, y], [x + 1, y - 1], [x + 1, y - 1]),
+    addMovesIfNotPinned(board, color, [x, y], [x + 1, y + 1], [x + 1, y + 1])
   );
 };
 
-const generatePawnMoves = (
-  board: CellState[][],
-  color: Color,
-  [x, y]: [number, number],
-  kingPosition: [number, number]
-) => {
+const generatePawnMoves = ({
+  board,
+  color,
+  currentPosition: [x, y],
+  kingPosition,
+}: MovesGeneratorInput) => {
   let validMoves: [number, number][] = [];
   if (color === Color.Black) {
     if (x === FIRST_BLACK_PAWN_ROW && !board[x + 2][y])
@@ -215,25 +207,22 @@ const generatePawnMoves = (
 };
 
 export const generateMoves = (
-  board: CellState[][],
-  color: Color,
-  piece: Piece,
-  currentPosition: [number, number],
-  kingPosition: [number, number]
+  movesGeneratorInput: MovesGeneratorInput,
+  piece: Piece
 ): [number, number][] => {
   switch (piece) {
     case Piece.Rook:
-      return generateRookMoves(board, color, currentPosition, kingPosition);
+      return generateRookMoves(movesGeneratorInput);
     case Piece.Knight:
-      return generateKnightMoves(board, color, currentPosition, kingPosition);
+      return generateKnightMoves(movesGeneratorInput);
     case Piece.Bishop:
-      return generateBishopMoves(board, color, currentPosition, kingPosition);
+      return generateBishopMoves(movesGeneratorInput);
     case Piece.Queen:
-      return generateQueenMoves(board, color, currentPosition, kingPosition);
+      return generateQueenMoves(movesGeneratorInput);
     case Piece.King:
-      return generateKingMoves(board, color, currentPosition, kingPosition);
+      return generateKingMoves(movesGeneratorInput);
     case Piece.Pawn:
-      return generatePawnMoves(board, color, currentPosition, kingPosition);
+      return generatePawnMoves(movesGeneratorInput);
     default:
       throw new Error("Piece not found");
   }
