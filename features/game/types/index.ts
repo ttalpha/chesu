@@ -8,8 +8,8 @@ export enum Piece {
 }
 
 export enum Color {
-  White,
-  Black,
+  White = "White",
+  Black = "Black",
 }
 
 export interface BoardPiece {

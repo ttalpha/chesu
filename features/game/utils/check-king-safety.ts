@@ -1,3 +1,4 @@
+import { generateMoves } from "./generate-moves";
 import { BOARD_SIZE } from "../constants";
 import { CellState, Color, Piece } from "../types";
 import { isOutOfBound, isSameColor } from "./checks";
@@ -129,4 +130,27 @@ export const detectChecks = (
     detectChecksByPawn(board, kingColor, kingPosition) ||
     detectControlsByEnemyKing(board, kingColor, kingPosition)
   );
+};
+
+export const detectCheckmate = (
+  board: CellState[][],
+  kingColor: Color,
+  kingPosition: [number, number]
+) => {
+  if (!detectChecks(board, kingColor, kingPosition)) return false;
+  for (let i = 0; i < BOARD_SIZE; i++)
+    for (let j = 0; j < BOARD_SIZE; j++) {
+      if (!board[i][j] || !isSameColor(board, kingColor, [i, j])) continue;
+      const validMoves = generateMoves(
+        {
+          board,
+          color: kingColor,
+          currentPosition: [i, j],
+          kingPosition,
+        },
+        board[i][j]!.piece
+      );
+      if (validMoves.length > 0) return false;
+    }
+  return true;
 };

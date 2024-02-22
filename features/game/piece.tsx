@@ -9,7 +9,7 @@ interface ChessPieceProps {
 }
 
 export const ChessPiece: React.FC<ChessPieceProps> = ({ boardPiece }) => {
-  const currentTurn = useGameStore.getState().currentTurn;
+  const currentTurn = useGameStore((state) => state.currentTurn);
   const color = boardPiece.color === Color.White ? "white" : "black";
   const pieceName = getPieceName(boardPiece.piece);
   return (
