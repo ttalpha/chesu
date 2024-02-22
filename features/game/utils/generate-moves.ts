@@ -7,6 +7,7 @@ import { CellState, Color, Piece } from "../types";
 import { detectChecks } from "./check-king-safety";
 import { isOutOfBound, isSameColor } from "./checks";
 import { produce } from "immer";
+import { getPiecesDirection } from "./pieces-directions";
 
 interface MovesGeneratorInput {
   board: CellState[][];
@@ -14,13 +15,6 @@ interface MovesGeneratorInput {
   currentPosition: [number, number];
   kingPosition: [number, number];
 }
-
-/**
-  @todo Detect checkmate
-  * See if the king is being checked
-  * Exhaustively generate all valid moves of all pieces
-  * If there are none, then it's a checkmate
-  */
 
 /**
   @description Prevent a piece from moving when it is being pinned with a king.
@@ -90,17 +84,12 @@ const generateKnightMoves = ({
   currentPosition: [x, y],
   kingPosition,
 }: MovesGeneratorInput) => {
-  const validMoves: [number, number][] = [];
-  return validMoves.concat(
-    addMovesIfNotPinned(board, color, [x, y], [x + 2, y - 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x + 2, y + 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x - 2, y - 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x - 2, y + 1], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y - 2], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y + 2], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y - 2], kingPosition),
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y + 2], kingPosition)
-  );
+  let validMoves: [number, number][] = [];
+  for (const [dx, dy] of getPiecesDirection(Piece.Knight, color))
+    validMoves = validMoves.concat(
+      addMovesIfNotPinned(board, color, [x, y], [x + dx, y + dy], kingPosition)
+    );
+  return validMoves;
 };
 
 const generateBishopMoves = ({
@@ -110,30 +99,23 @@ const generateBishopMoves = ({
   kingPosition,
 }: MovesGeneratorInput) => {
   let validMoves: [number, number][] = [];
-  for (let i = 1; i < BOARD_SIZE; i++) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [x + i, y + i], kingPosition)
-    );
-    if (!isOutOfBound([x + i, y + i]) && board[x + i][y + i]) break;
-  }
-  for (let i = 1; i < BOARD_SIZE; i++) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [x + i, y - i], kingPosition)
-    );
-    if (!isOutOfBound([x + i, y - i]) && board[x + i][y - i]) break;
-  }
-  for (let i = 1; i < BOARD_SIZE; i++) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [x - i, y + i], kingPosition)
-    );
-    if (!isOutOfBound([x - i, y + i]) && board[x - i][y + i]) break;
-  }
-  for (let i = 1; i < BOARD_SIZE; i++) {
-    validMoves = validMoves.concat(
-      addMovesIfNotPinned(board, color, [x, y], [x - i, y - i], kingPosition)
-    );
-    if (!isOutOfBound([x - i, y - i]) && board[x - i][y - i]) break;
-  }
+  for (const [dx, dy] of getPiecesDirection(Piece.Bishop, color))
+    for (let i = 1; i < BOARD_SIZE; i++) {
+      validMoves = validMoves.concat(
+        addMovesIfNotPinned(
+          board,
+          color,
+          [x, y],
+          [x + dx * i, y + dy * i],
+          kingPosition
+        )
+      );
+      if (
+        !isOutOfBound([x + dx * i, y + dy * i]) &&
+        board[x + dx * i][y + dy * i]
+      )
+        break;
+    }
   return validMoves;
 };
 
@@ -148,17 +130,18 @@ const generateKingMoves = ({
   color,
   currentPosition: [x, y],
 }: MovesGeneratorInput) => {
-  const validMoves: [number, number][] = [];
-  return validMoves.concat(
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y], [x - 1, y]),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y], [x + 1, y]),
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y - 1], [x - 1, y - 1]),
-    addMovesIfNotPinned(board, color, [x, y], [x - 1, y + 1], [x - 1, y + 1]),
-    addMovesIfNotPinned(board, color, [x, y], [x, y - 1], [x, y - 1]),
-    addMovesIfNotPinned(board, color, [x, y], [x, y + 1], [x, y + 1]),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y - 1], [x + 1, y - 1]),
-    addMovesIfNotPinned(board, color, [x, y], [x + 1, y + 1], [x + 1, y + 1])
-  );
+  let validMoves: [number, number][] = [];
+  for (const [dx, dy] of getPiecesDirection(Piece.King, color))
+    validMoves = validMoves.concat(
+      addMovesIfNotPinned(
+        board,
+        color,
+        [x, y],
+        [x + dx, y + dy],
+        [x + dx, y + dy]
+      )
+    );
+  return validMoves;
 };
 
 const generatePawnMoves = ({
@@ -173,14 +156,18 @@ const generatePawnMoves = ({
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x + 2, y], kingPosition)
       );
-    if (isSameColor(board, Color.White, [x + 1, y - 1]))
-      validMoves = validMoves.concat(
-        addMovesIfNotPinned(board, color, [x, y], [x + 1, y - 1], kingPosition)
-      );
-    if (isSameColor(board, Color.White, [x + 1, y + 1]))
-      validMoves = validMoves.concat(
-        addMovesIfNotPinned(board, color, [x, y], [x + 1, y + 1], kingPosition)
-      );
+    for (const [dx, dy] of getPiecesDirection(Piece.Pawn, color)) {
+      if (isSameColor(board, Color.White, [x + dx, y + dy]))
+        validMoves = validMoves.concat(
+          addMovesIfNotPinned(
+            board,
+            color,
+            [x, y],
+            [x + dx, y + dy],
+            kingPosition
+          )
+        );
+    }
     if (!isOutOfBound([x + 1, y]) && !board[x + 1][y])
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x + 1, y], kingPosition)
@@ -190,14 +177,18 @@ const generatePawnMoves = ({
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x - 2, y], kingPosition)
       );
-    if (isSameColor(board, Color.Black, [x - 1, y - 1]))
-      validMoves = validMoves.concat(
-        addMovesIfNotPinned(board, color, [x, y], [x - 1, y - 1], kingPosition)
-      );
-    if (isSameColor(board, Color.Black, [x - 1, y + 1]))
-      validMoves = validMoves.concat(
-        addMovesIfNotPinned(board, color, [x, y], [x - 1, y + 1], kingPosition)
-      );
+    for (const [dx, dy] of getPiecesDirection(Piece.Pawn, color)) {
+      if (isSameColor(board, Color.Black, [x + dx, y + dy]))
+        validMoves = validMoves.concat(
+          addMovesIfNotPinned(
+            board,
+            color,
+            [x, y],
+            [x + dx, y + dy],
+            kingPosition
+          )
+        );
+    }
     if (!isOutOfBound([x - 1, y]) && !board[x - 1][y])
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x - 1, y], kingPosition)

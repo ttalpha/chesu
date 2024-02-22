@@ -45,9 +45,9 @@ const piecesDirection = {
   ],
 };
 
-export const getPiecesDirection = (piece: Piece, kingColor: Color) => {
+export const getPiecesDirection = (piece: Piece, color: Color) => {
   if (piece === Piece.Pawn)
-    return kingColor === Color.White
+    return color === Color.White
       ? [
           [-1, -1],
           [-1, 1],
