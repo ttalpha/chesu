@@ -24,7 +24,7 @@ export const BoardCell: React.FC<BoardCellProps> = ({
       ref={setNodeRef}
       className={cn(
         "w-16 flex relative items-center justify-center h-16",
-        row % 2 === col % 2 ? "bg-neutral-200" : "bg-neutral-400"
+        row % 2 !== col % 2 ? "bg-[#b5885f]" : "bg-[#ececd0]"
       )}
     >
       {active && validMoves.some(([x, y]) => row === x && col === y) && (

@@ -100,7 +100,7 @@ const detectChecksByPawn = (
   );
 };
 
-const detectControlsByEnemyKing = (
+export const detectControlsByEnemyKing = (
   board: CellState[][],
   kingColor: Color,
   kingPosition: [number, number]
@@ -127,8 +127,7 @@ export const detectChecks = (
     detectChecksHorizontallyAndVertically(board, kingColor, kingPosition) ||
     detectChecksDiagonally(board, kingColor, kingPosition) ||
     detectChecksByKnight(board, kingColor, kingPosition) ||
-    detectChecksByPawn(board, kingColor, kingPosition) ||
-    detectControlsByEnemyKing(board, kingColor, kingPosition)
+    detectChecksByPawn(board, kingColor, kingPosition)
   );
 };
 

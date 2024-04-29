@@ -24,3 +24,12 @@ export interface PieceMetadata {
   col: number;
   boardPiece: BoardPiece;
 }
+
+export interface Move {
+  piece: Piece;
+  from: [number, number];
+  to: [number, number];
+  check: boolean;
+  checkmate: boolean;
+  capture: boolean;
+}

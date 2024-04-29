@@ -4,7 +4,7 @@ import {
   FIRST_WHITE_PAWN_ROW,
 } from "../constants";
 import { CellState, Color, Piece } from "../types";
-import { detectChecks } from "./check-king-safety";
+import { detectChecks, detectControlsByEnemyKing } from "./check-king-safety";
 import { isOutOfBound, isSameColor } from "./checks";
 import { produce } from "immer";
 import { getPiecesDirection } from "./pieces-directions";
@@ -38,7 +38,10 @@ const addMovesIfNotPinned = (
     draft[newX][newY] = currentCell;
     draft[x][y] = null;
   });
-  if (!detectChecks(tempBoard, color, kingPosition))
+  if (
+    !detectChecks(tempBoard, color, kingPosition) &&
+    !detectControlsByEnemyKing(tempBoard, color, kingPosition)
+  )
     validMoves.push([newX, newY]);
   return validMoves;
 };
@@ -62,7 +65,11 @@ const generateRookMoves = ({
           kingPosition
         )
       );
-      if (board[x + dx * i][y + dy * i]) break;
+      if (
+        !isOutOfBound([x + dx * i, y + dy * i]) &&
+        board[x + dx * i][y + dy * i]
+      )
+        break;
     }
   }
   return validMoves;
@@ -142,7 +149,7 @@ const generatePawnMoves = ({
 }: MovesGeneratorInput) => {
   let validMoves: [number, number][] = [];
   if (color === Color.Black) {
-    if (x === FIRST_BLACK_PAWN_ROW && !board[x + 2][y])
+    if (x === FIRST_BLACK_PAWN_ROW && !board[x + 2][y] && !board[x + 1][y])
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x + 2, y], kingPosition)
       );
@@ -163,7 +170,7 @@ const generatePawnMoves = ({
         addMovesIfNotPinned(board, color, [x, y], [x + 1, y], kingPosition)
       );
   } else {
-    if (x === FIRST_WHITE_PAWN_ROW && !board[x - 2][y])
+    if (x === FIRST_WHITE_PAWN_ROW && !board[x - 2][y] && !board[x - 1][y])
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x - 2, y], kingPosition)
       );
