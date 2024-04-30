@@ -1,8 +1,11 @@
 import { useGameStore } from "./hooks";
+import { Color } from "./types";
 import { convertCellToPGN } from "./utils";
 
 export const Moves = () => {
   const moves = useGameStore((state) => state.moves);
+  const winner = useGameStore((state) => state.winner);
+  const isGameOver = useGameStore((state) => state.isGameOver);
   return (
     <div className="h-[512px] overflow-y-auto overflow-x-hidden">
       <div className="grid grid-cols-3 justify-items-start">
@@ -20,6 +23,11 @@ export const Moves = () => {
             ))}
           </>
         ))}
+        <span className="text-sm justify-start font-medium py-2">
+          {isGameOver && winner === null && "1/2-1/2"}
+          {winner === Color.White && "1-0"}
+          {winner === Color.Black && "0-1"}
+        </span>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { CellState, Color, Move } from "../types";
+import { CellState, Color, Move, Piece } from "../types";
 import { convertFenToBoard, detectCheckmate, detectChecks } from "../utils";
 import {
+  BOARD_SIZE,
   FIRST_BLACK_KING_POSITION,
   FIRST_WHITE_KING_POSITION,
   STARTING_FEN,
@@ -14,7 +15,7 @@ interface Action {
     oldPosition: [number, number],
     newPosition: [number, number]
   ) => void;
-  endGame: (winner: Color) => void;
+  endGame: (winner: Color | null) => void;
   reset: () => void;
   setKingPosition: (color: Color, newPosition: [number, number]) => void;
 }
@@ -51,8 +52,27 @@ export const useGameStore = create<State & Action>()(
       set((state) => {
         const oldPosition = state.board[oldX][oldY];
         const hasPiece = state.board[newX][newY] !== null;
-        state.board[oldX][oldY] = null;
+        const kingSideCastle =
+          newY - oldY === 2 && oldPosition?.piece === Piece.King;
+        const queenSideCastle =
+          newY - oldY === -2 && oldPosition?.piece === Piece.King;
+        const rookToCastleRowIndex =
+          +(state.currentTurn === Color.White) * (BOARD_SIZE - 1);
+        const rookToCastleColIndex = kingSideCastle ? BOARD_SIZE - 1 : 0;
+
         state.board[newX][newY] = oldPosition;
+        const rookColAfterCastlingPosition = kingSideCastle
+          ? oldY + 1
+          : oldY - 1;
+        if (kingSideCastle || queenSideCastle) {
+          state.board[rookToCastleRowIndex][rookToCastleColIndex] = null;
+          state.board[oldX][rookColAfterCastlingPosition] = {
+            color: state.currentTurn,
+            piece: Piece.Rook,
+          };
+        }
+        state.board[oldX][oldY] = null;
+
         const kingPosition =
           state.currentTurn === Color.White
             ? state.blackKingPosition
@@ -66,6 +86,8 @@ export const useGameStore = create<State & Action>()(
           check: detectChecks(state.board, nextTurn, kingPosition),
           checkmate: detectCheckmate(state.board, nextTurn, kingPosition),
           capture: hasPiece,
+          kingSideCastle,
+          queenSideCastle,
         };
         const last = state.moves.at(-1);
         if (last && last.length <= 1) last.push(newMove);

@@ -1,12 +1,13 @@
 import { useGameStore } from "./use-game-store";
 import { useState } from "react";
 import { Color, Piece, PieceMetadata } from "../types";
-import { detectCheckmate, generateMoves } from "../utils";
+import { detectCheckmate, detectStalemate, generateMoves } from "../utils";
 import { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import { produce } from "immer";
 
 export const usePiecesDnd = () => {
   const board = useGameStore((state) => state.board);
+  const moves = useGameStore((state) => state.moves);
   const currentTurn = useGameStore((state) => state.currentTurn);
   const isGameOver = useGameStore((state) => state.isGameOver);
   const movePiece = useGameStore((state) => state.movePiece);
@@ -23,7 +24,9 @@ export const usePiecesDnd = () => {
     const kingPosition =
       currentTurn === Color.White ? whiteKingPosition : blackKingPosition;
     if (isGameOver || boardPiece.color !== currentTurn) setValidMoves([]);
-    else
+    else {
+      if (boardPiece.piece === Piece.King) {
+      }
       setValidMoves(
         generateMoves(
           {
@@ -32,9 +35,11 @@ export const usePiecesDnd = () => {
             kingPosition,
             currentPosition: [row, col],
           },
-          boardPiece.piece
+          boardPiece.piece,
+          moves
         )
       );
+    }
   }
   function onDragEnd(event: DragEndEvent) {
     if (!event.over?.id) return;
@@ -55,6 +60,7 @@ export const usePiecesDnd = () => {
       });
       if (detectCheckmate(latestBoard, loser, kingPosition))
         endGame(currentTurn);
+      else if (detectStalemate(latestBoard, loser, kingPosition)) endGame(null);
       else changeTurn();
     }
   }

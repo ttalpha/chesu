@@ -31,5 +31,7 @@ export interface Move {
   to: [number, number];
   check: boolean;
   checkmate: boolean;
+  kingSideCastle: boolean;
+  queenSideCastle: boolean;
   capture: boolean;
 }

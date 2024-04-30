@@ -1,6 +1,6 @@
 import { generateMoves } from "./generate-moves";
 import { BOARD_SIZE } from "../constants";
-import { CellState, Color, Piece } from "../types";
+import { CellState, Color, Move, Piece } from "../types";
 import { isOutOfBound, isSameColor } from "./checks";
 import { getPiecesDirection } from "./pieces-directions";
 
@@ -131,12 +131,11 @@ export const detectChecks = (
   );
 };
 
-export const detectCheckmate = (
+const checkNoValidMoves = (
   board: CellState[][],
   kingColor: Color,
   kingPosition: [number, number]
 ) => {
-  if (!detectChecks(board, kingColor, kingPosition)) return false;
   for (let i = 0; i < BOARD_SIZE; i++)
     for (let j = 0; j < BOARD_SIZE; j++) {
       if (!board[i][j] || !isSameColor(board, kingColor, [i, j])) continue;
@@ -152,4 +151,141 @@ export const detectCheckmate = (
       if (validMoves.length > 0) return false;
     }
   return true;
+};
+
+const checkCastleKingSideSquaresControlled = (
+  board: CellState[][],
+  kingColor: Color
+) => {
+  const rowToCheck = +(kingColor === Color.White) * (BOARD_SIZE - 1);
+  return (
+    detectChecks(board, kingColor, [rowToCheck, 5]) ||
+    detectChecks(board, kingColor, [rowToCheck, 6])
+  );
+};
+
+const checkClearanceForKingSideCastling = (
+  board: CellState[][],
+  kingColor: Color
+) => {
+  const rowToCheck = +(kingColor === Color.White) * (BOARD_SIZE - 1);
+  console.log({ row: board[rowToCheck] });
+  return !board[rowToCheck][5] && !board[rowToCheck][6];
+};
+
+const checkClearanceForQueenSideCastling = (
+  board: CellState[][],
+  kingColor: Color
+) => {
+  const rowToCheck = +(kingColor === Color.White) * (BOARD_SIZE - 1);
+  console.log({ row: board[rowToCheck] });
+  return (
+    !board[rowToCheck][1] && !board[rowToCheck][2] && !board[rowToCheck][3]
+  );
+};
+
+const checkCastleQueenSideSquaresControlled = (
+  board: CellState[][],
+  kingColor: Color
+) => {
+  const rowToCheck = +(kingColor === Color.White) * (BOARD_SIZE - 1);
+  return (
+    detectChecks(board, kingColor, [rowToCheck, 1]) ||
+    detectChecks(board, kingColor, [rowToCheck, 2]) ||
+    detectChecks(board, kingColor, [rowToCheck, 3])
+  );
+};
+
+const checkRookMoved = (move: Move, color: Color, side: "king" | "queen") => {
+  const rowToCheck = +(color === Color.White) * (BOARD_SIZE - 1);
+  const sideToCheck = side === "king" ? BOARD_SIZE - 1 : 0;
+  return (
+    move.piece === Piece.Rook &&
+    move.from[0] === rowToCheck &&
+    move.from[1] === sideToCheck
+  );
+};
+
+export const checkCanCastleKingSide = (
+  board: CellState[][],
+  kingColor: Color,
+  kingPosition: [number, number],
+  moves: Move[][]
+) => {
+  const moveIndex = +(kingColor === Color.Black);
+  if (kingColor === Color.Black) moves = moves.slice(0, -1);
+  const hasMovedKingOrRookPreviously = moves.some(
+    (move) =>
+      move[moveIndex].piece === Piece.King ||
+      checkRookMoved(move[moveIndex], kingColor, "king")
+  );
+  const anySquaresControlled = checkCastleKingSideSquaresControlled(
+    board,
+    kingColor
+  );
+  const isBeingChecked = detectChecks(board, kingColor, kingPosition);
+  const rowToCheck = +(kingColor === Color.White) * (BOARD_SIZE - 1);
+  const areSquaresCleared = checkClearanceForKingSideCastling(board, kingColor);
+
+  return (
+    !isBeingChecked &&
+    !hasMovedKingOrRookPreviously &&
+    !anySquaresControlled &&
+    areSquaresCleared &&
+    board[rowToCheck].at(-1)?.piece === Piece.Rook
+  );
+};
+
+export const checkCanCastleQueenSide = (
+  board: CellState[][],
+  kingColor: Color,
+  kingPosition: [number, number],
+  moves: Move[][]
+) => {
+  const rowToCheck = +(kingColor === Color.White) * (BOARD_SIZE - 1);
+  const moveIndex = +(kingColor === Color.Black);
+  if (kingColor === Color.Black) moves = moves.slice(0, -1);
+  const hasMovedKingOrRookPreviously = moves.some(
+    (move) =>
+      move[moveIndex].piece === Piece.King ||
+      checkRookMoved(move[moveIndex], kingColor, "queen")
+  );
+  const anySquaresControlled = checkCastleQueenSideSquaresControlled(
+    board,
+    kingColor
+  );
+  const isBeingChecked = detectChecks(board, kingColor, kingPosition);
+  const areSquaresCleared = checkClearanceForQueenSideCastling(
+    board,
+    kingColor
+  );
+  return (
+    !isBeingChecked &&
+    !hasMovedKingOrRookPreviously &&
+    !anySquaresControlled &&
+    areSquaresCleared &&
+    board[rowToCheck][0]?.piece === Piece.Rook
+  );
+};
+
+export const detectCheckmate = (
+  board: CellState[][],
+  kingColor: Color,
+  kingPosition: [number, number]
+) => {
+  return (
+    detectChecks(board, kingColor, kingPosition) &&
+    checkNoValidMoves(board, kingColor, kingPosition)
+  );
+};
+
+export const detectStalemate = (
+  board: CellState[][],
+  kingColor: Color,
+  kingPosition: [number, number]
+) => {
+  return (
+    !detectChecks(board, kingColor, kingPosition) &&
+    checkNoValidMoves(board, kingColor, kingPosition)
+  );
 };

@@ -8,10 +8,15 @@ export const convertCellToPGN = ({
   to,
   piece,
   capture,
+  kingSideCastle,
+  queenSideCastle,
 }: Move) => {
   const checkNotation = check && !checkmate ? "+" : "";
   const checkmateNotation = checkmate ? "#" : "";
   const captureNotation = capture ? "x" : "";
+  if (kingSideCastle) return "O-O";
+  if (queenSideCastle) return "O-O-O";
+
   return (
     (piece !== Piece.Pawn ? piece : "") +
     (piece !== Piece.Pawn ? captureNotation : "") +

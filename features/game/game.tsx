@@ -14,18 +14,21 @@ export const Game = () => {
 
   useEffect(() => {
     const restart = (e: KeyboardEvent) => {
+      if (!isGameOver) return;
       if (e.key.toLowerCase() === "r") reset();
     };
     window.addEventListener("keypress", restart);
     return () => window.removeEventListener("keypress", restart);
-  }, []);
+  }, [isGameOver]);
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-4 max-w-4xl mx-auto">
       <h3 className="text-center text-2xl font-semibold">
         {!isGameOver
           ? `${currentTurn} turn to move`
-          : `${winner} wins by checkmating`}
+          : winner
+          ? `${winner} wins by checkmating`
+          : "Stalemate"}
       </h3>
       {isGameOver && (
         <p className="text-center text-gray-600">Press R to play again</p>

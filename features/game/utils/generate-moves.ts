@@ -3,8 +3,13 @@ import {
   FIRST_BLACK_PAWN_ROW,
   FIRST_WHITE_PAWN_ROW,
 } from "../constants";
-import { CellState, Color, Piece } from "../types";
-import { detectChecks, detectControlsByEnemyKing } from "./check-king-safety";
+import { CellState, Color, Move, Piece } from "../types";
+import {
+  checkCanCastleKingSide,
+  checkCanCastleQueenSide,
+  detectChecks,
+  detectControlsByEnemyKing,
+} from "./check-king-safety";
 import { isOutOfBound, isSameColor } from "./checks";
 import { produce } from "immer";
 import { getPiecesDirection } from "./pieces-directions";
@@ -122,11 +127,10 @@ const generateQueenMoves = (movesGeneratorInput: MovesGeneratorInput) => {
   );
 };
 
-const generateKingMoves = ({
-  board,
-  color,
-  currentPosition: [x, y],
-}: MovesGeneratorInput) => {
+const generateKingMoves = (
+  { board, color, currentPosition: [x, y] }: MovesGeneratorInput,
+  moves: Move[][]
+) => {
   let validMoves: [number, number][] = [];
   for (const [dx, dy] of getPiecesDirection(Piece.King, color))
     validMoves = validMoves.concat(
@@ -138,6 +142,10 @@ const generateKingMoves = ({
         [x + dx, y + dy]
       )
     );
+  if (checkCanCastleKingSide(board, color, [x, y], moves))
+    validMoves = validMoves.concat([[x, y + 2]]);
+  if (checkCanCastleQueenSide(board, color, [x, y], moves))
+    validMoves = validMoves.concat([[x, y - 2]]);
   return validMoves;
 };
 
@@ -196,7 +204,8 @@ const generatePawnMoves = ({
 
 export const generateMoves = (
   movesGeneratorInput: MovesGeneratorInput,
-  piece: Piece
+  piece: Piece,
+  moves: Move[][] = []
 ): [number, number][] => {
   switch (piece) {
     case Piece.Rook:
@@ -208,7 +217,7 @@ export const generateMoves = (
     case Piece.Queen:
       return generateQueenMoves(movesGeneratorInput);
     case Piece.King:
-      return generateKingMoves(movesGeneratorInput);
+      return generateKingMoves(movesGeneratorInput, moves);
     case Piece.Pawn:
       return generatePawnMoves(movesGeneratorInput);
     default:
