@@ -7,9 +7,22 @@
     <title>Chesu - Play chess today</title>
   </head>
   <body>
-    <div class="h-screen w-full flex justify-center items-center">
+    <div
+      class="h-screen w-full gap-y-4 flex flex-col justify-center items-center"
+    >
+      <div class="text-center space-y-3">
+        <h1
+          id="message"
+          class="text-2xl text-center font-bold tracking-tight"
+        ></h1>
+      </div>
       <div id="board" class="grid grid-cols-8"></div>
     </div>
+    <audio id="check" src="assets/audio/move-check.mp3"></audio>
+    <audio id="castle" src="assets/audio/castle.mp3"></audio>
+    <audio id="move" src="assets/audio/move-self.mp3"></audio>
+    <audio id="capture" src="assets/audio/capture.mp3"></audio>
+    <audio id="game-over" src="assets/audio/game-end.mp3"></audio>
     <script src="dist/index.js" type="module"></script>
   </body>
 </html>

@@ -37,3 +37,17 @@ export enum Color {
 }
 
 export type SelectedSquare = { piece: Piece; square: Square } | null;
+
+export enum AudioType {
+  GameOver = "game-over",
+  Check = "check",
+  Capture = "capture",
+  Move = "move",
+  Castle = "castle",
+}
+
+export enum DrawReason {
+  Stalemate = "Stalemate",
+  ThreefoldRepetition = "Threefold Repetition",
+  InsufficientMaterial = "Insufficient Material",
+}

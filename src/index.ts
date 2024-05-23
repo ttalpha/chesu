@@ -9,14 +9,17 @@ import { Pawn } from "./pawn.mjs";
 import { Color } from "./types.mjs";
 import { Game } from "./game.mjs";
 import { Square } from "./square.mjs";
+import { Detector } from "./detector.mjs";
+import { MovesGenerator } from "./moves-generator.mjs";
+import { Display } from "./display.mjs";
 
 const startingBoard: (Piece | null)[][] = [
   [
     new Rook(Color.Black),
     new Knight(Color.Black),
     new Bishop(Color.Black),
-    new King(Color.Black),
     new Queen(Color.Black),
+    new King(Color.Black),
     new Bishop(Color.Black),
     new Knight(Color.Black),
     new Rook(Color.Black),
@@ -57,16 +60,39 @@ const startingBoard: (Piece | null)[][] = [
   ],
 ];
 
-const board = new Board(startingBoard);
-const game = new Game(board);
-board.draw();
-document.querySelectorAll("[data-square]").forEach((square: HTMLDivElement) => {
-  square.addEventListener("click", (event) => {
-    const squareElement = event.currentTarget as HTMLDivElement;
-    const [x, y] = squareElement.getAttribute("data-square").split(",");
+const loadGame = () => {
+  const board = new Board([...startingBoard.map((row) => [...row])]);
 
-    const currentSquare = new Square(+x, +y);
-    game.showMoves(currentSquare);
-    game.movePiece(currentSquare);
-  });
+  const movesGenerator = new MovesGenerator(board);
+  const detector = new Detector(board, movesGenerator);
+  const display = new Display();
+  const game = new Game(board, detector, display, movesGenerator);
+  return game;
+};
+let game = loadGame();
+
+window.addEventListener("load", () => {
+  onSquaresSelect();
 });
+
+window.addEventListener("keypress", (e) => {
+  if (game.isGameOver && e.key.toLowerCase() === "r") {
+    game = loadGame();
+    onSquaresSelect();
+  }
+});
+
+const onSquaresSelect = () => {
+  document
+    .querySelectorAll("[data-square]")
+    .forEach((square: HTMLDivElement) => {
+      square.addEventListener("click", (event) => {
+        const squareElement = event.currentTarget as HTMLDivElement;
+        const [x, y] = squareElement.getAttribute("data-square").split(",");
+
+        const currentSquare = new Square(+x, +y);
+        game.showMoves(currentSquare);
+        game.movePiece(currentSquare);
+      });
+    });
+};

@@ -1,3 +1,4 @@
+import { King } from "./king.mjs";
 import { Piece } from "./piece.mjs";
 import { Square } from "./square.mjs";
 import { Color, piecesImage } from "./types.mjs";
@@ -8,6 +9,7 @@ export class Board {
 
   constructor(board: (Piece | null)[][]) {
     this._board = board;
+    this.draw();
   }
 
   static isOutOfBound(square: Square): boolean {
@@ -30,7 +32,7 @@ export class Board {
     return this.board[x][y] && this.board[x][y].color !== color;
   }
 
-  draw() {
+  private draw() {
     const boardElement = document.getElementById("board");
     boardElement.innerHTML = null;
     this._board.forEach((row, i) => {
@@ -59,7 +61,23 @@ export class Board {
     });
   }
 
+  findKingPosition(color: Color): Square {
+    for (let i = 0; i < Board.size; i++)
+      for (let j = 0; j < Board.size; j++) {
+        if (
+          this.board[i][j] instanceof King &&
+          this.board[i][j].color === color
+        )
+          return new Square(i, j);
+      }
+    return null;
+  }
+
   get board() {
     return this._board;
+  }
+
+  set board(newBoard) {
+    this._board = newBoard;
   }
 }

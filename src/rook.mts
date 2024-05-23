@@ -22,6 +22,6 @@ export class Rook extends Piece {
   }
 
   set hasMoved(_: boolean) {
-    this.hasMoved = true;
+    this._hasMoved = true;
   }
 }
