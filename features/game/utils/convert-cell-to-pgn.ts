@@ -10,6 +10,7 @@ export const convertCellToPGN = ({
   capture,
   kingSideCastle,
   queenSideCastle,
+  promotionPiece,
 }: Move) => {
   const checkNotation = check && !checkmate ? "+" : "";
   const checkmateNotation = checkmate ? "#" : "";
@@ -25,6 +26,7 @@ export const convertCellToPGN = ({
       : "") +
     String.fromCharCode(to[1] + 97) +
     (BOARD_SIZE - to[0]) +
+    (promotionPiece ? "=" + promotionPiece : "") +
     checkNotation +
     checkmateNotation
   );

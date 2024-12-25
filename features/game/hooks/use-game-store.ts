@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { CellState, Color, Move, Piece } from "../types";
+import { BoardPiece, CellState, Color, Move, Piece } from "../types";
 import { convertFenToBoard, detectCheckmate, detectChecks } from "../utils";
 import {
   BOARD_SIZE,
@@ -7,14 +7,24 @@ import {
   FIRST_WHITE_KING_POSITION,
   STARTING_FEN,
 } from "../constants";
+import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { isEnPassantMove } from "../utils/check-en-passant";
+import { isCastleMove } from "../utils/check-castling";
 
 interface Action {
   changeTurn: () => void;
+  nextTurn: () => Color;
+  opposingKingPosition: () => [number, number];
   movePiece: (
     oldPosition: [number, number],
     newPosition: [number, number]
   ) => void;
+  castle: (
+    oldPosition: [number, number],
+    newPosition: [number, number]
+  ) => void;
+  promotePawn: (newPosition: [number, number], piece: BoardPiece) => void;
   endGame: (winner: Color | null) => void;
   reset: () => void;
   setKingPosition: (color: Color, newPosition: [number, number]) => void;
@@ -27,7 +37,7 @@ interface State {
   whiteKingPosition: [number, number];
   blackKingPosition: [number, number];
   winner: Color | null;
-  moves: Move[][];
+  moves: Move[];
 }
 
 const initialStates: State = {
@@ -41,77 +51,125 @@ const initialStates: State = {
 };
 
 export const useGameStore = create<State & Action>()(
-  immer((set) => ({
-    ...initialStates,
-    changeTurn: () =>
-      set((state) => {
-        if (state.currentTurn === Color.White) state.currentTurn = Color.Black;
-        else state.currentTurn = Color.White;
-      }),
-    movePiece: ([oldX, oldY], [newX, newY]) =>
-      set((state) => {
-        const oldPosition = state.board[oldX][oldY];
-        const hasPiece = state.board[newX][newY] !== null;
-        const kingSideCastle =
-          newY - oldY === 2 && oldPosition?.piece === Piece.King;
-        const queenSideCastle =
-          newY - oldY === -2 && oldPosition?.piece === Piece.King;
-        const rookToCastleRowIndex =
-          +(state.currentTurn === Color.White) * (BOARD_SIZE - 1);
-        const rookToCastleColIndex = kingSideCastle ? BOARD_SIZE - 1 : 0;
-
-        state.board[newX][newY] = oldPosition;
-        const rookColAfterCastlingPosition = kingSideCastle
-          ? oldY + 1
-          : oldY - 1;
-        if (kingSideCastle || queenSideCastle) {
-          state.board[rookToCastleRowIndex][rookToCastleColIndex] = null;
-          state.board[oldX][rookColAfterCastlingPosition] = {
-            color: state.currentTurn,
-            piece: Piece.Rook,
+  immer(
+    subscribeWithSelector((set, get) => ({
+      ...initialStates,
+      changeTurn: () =>
+        set((state) => {
+          if (state.currentTurn === Color.White)
+            state.currentTurn = Color.Black;
+          else state.currentTurn = Color.White;
+        }),
+      castle: (
+        [oldX, oldY]: [number, number],
+        [newX, newY]: [number, number]
+      ) =>
+        set((state) => {
+          const { kingSideCastle, queenSideCastle } = isCastleMove(
+            state.board,
+            [oldX, oldY],
+            [newX, newY]
+          );
+          const rookToCastleRowIndex =
+            +(state.currentTurn === Color.White) * (BOARD_SIZE - 1);
+          const rookToCastleColIndex = kingSideCastle ? BOARD_SIZE - 1 : 0;
+          const rookColAfterCastlingPosition = kingSideCastle
+            ? oldY + 1
+            : oldY - 1;
+          if (kingSideCastle || queenSideCastle) {
+            state.board[rookToCastleRowIndex][rookToCastleColIndex] = null;
+            state.board[oldX][rookColAfterCastlingPosition] = {
+              color: state.currentTurn,
+              piece: Piece.Rook,
+            };
+          }
+        }),
+      promotePawn: ([newX, newY]: [number, number], piece: BoardPiece) =>
+        set((state) => {
+          state.board[newX][newY] = piece;
+          state.moves[state.moves.length - 1] = {
+            ...state.moves[state.moves.length - 1],
+            promotionPiece: piece.piece,
+            check: detectChecks(
+              state.board,
+              get().nextTurn(),
+              get().opposingKingPosition()
+            ),
+            checkmate: detectCheckmate(
+              state.board,
+              get().nextTurn(),
+              get().opposingKingPosition()
+            ),
           };
-        }
-        state.board[oldX][oldY] = null;
+        }),
+      movePiece: ([oldX, oldY], [newX, newY]) =>
+        set((state) => {
+          const oldPosition = state.board[oldX][oldY];
+          let hasPiece = state.board[newX][newY] !== null;
 
-        const kingPosition =
-          state.currentTurn === Color.White
-            ? state.blackKingPosition
-            : state.whiteKingPosition;
-        const nextTurn =
-          state.currentTurn === Color.White ? Color.Black : Color.White;
-        const newMove: Move = {
-          from: [oldX, oldY],
-          to: [newX, newY],
-          piece: oldPosition!.piece,
-          check: detectChecks(state.board, nextTurn, kingPosition),
-          checkmate: detectCheckmate(state.board, nextTurn, kingPosition),
-          capture: hasPiece,
-          kingSideCastle,
-          queenSideCastle,
-        };
-        const last = state.moves.at(-1);
-        if (last && last.length <= 1) last.push(newMove);
-        else state.moves.push([newMove]);
-      }),
-    setKingPosition: (color, newPosition) =>
-      set((state) => {
-        if (color === Color.White) state.whiteKingPosition = newPosition;
-        else state.blackKingPosition = newPosition;
-      }),
-    endGame: (winner) =>
-      set((state) => {
-        state.winner = winner;
-        state.isGameOver = true;
-      }),
-    reset: () =>
-      set((state) => {
-        state.isGameOver = false;
-        state.winner = null;
-        state.board = initialStates.board;
-        state.currentTurn = Color.White;
-        state.whiteKingPosition = FIRST_WHITE_KING_POSITION;
-        state.blackKingPosition = FIRST_BLACK_KING_POSITION;
-        state.moves = [];
-      }),
-  }))
+          const { kingSideCastle, queenSideCastle } = isCastleMove(
+            state.board,
+            [oldX, oldY],
+            [newX, newY]
+          );
+          const isEnPassant = isEnPassantMove(
+            state.board,
+            [oldX, oldY],
+            [newX, newY]
+          );
+          state.board[newX][newY] = oldPosition;
+          state.board[oldX][oldY] = null;
+          if (isEnPassant) {
+            state.board[oldX][newY] = null;
+            hasPiece = true;
+          }
+          const newMove: Move = {
+            from: [oldX, oldY],
+            to: [newX, newY],
+            piece: oldPosition!.piece,
+            check: detectChecks(
+              state.board,
+              get().nextTurn(),
+              get().opposingKingPosition()
+            ),
+            checkmate: detectCheckmate(
+              state.board,
+              get().nextTurn(),
+              get().opposingKingPosition()
+            ),
+            capture: hasPiece,
+            isEnPassant,
+            kingSideCastle,
+            queenSideCastle,
+          };
+          state.moves.push(newMove);
+        }),
+      nextTurn: () =>
+        get().currentTurn === Color.White ? Color.Black : Color.White,
+      opposingKingPosition: () =>
+        get().currentTurn === Color.White
+          ? get().blackKingPosition
+          : get().whiteKingPosition,
+      setKingPosition: (color, newPosition) =>
+        set((state) => {
+          if (color === Color.White) state.whiteKingPosition = newPosition;
+          else state.blackKingPosition = newPosition;
+        }),
+      endGame: (winner) =>
+        set((state) => {
+          state.winner = winner;
+          state.isGameOver = true;
+        }),
+      reset: () =>
+        set((state) => {
+          state.isGameOver = false;
+          state.winner = null;
+          state.board = initialStates.board;
+          state.currentTurn = Color.White;
+          state.whiteKingPosition = FIRST_WHITE_KING_POSITION;
+          state.blackKingPosition = FIRST_BLACK_KING_POSITION;
+          state.moves = [];
+        }),
+    }))
+  )
 );

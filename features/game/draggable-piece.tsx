@@ -20,12 +20,13 @@ export const DraggablePiece: React.FC<DraggablePieceProps> = ({
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 30,
       }
     : undefined;
 
   return (
     <div
-      className="relative z-10"
+      className="relative z-20"
       {...listeners}
       {...attributes}
       style={style}

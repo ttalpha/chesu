@@ -4,15 +4,15 @@ import {
   FIRST_WHITE_PAWN_ROW,
 } from "../constants";
 import { CellState, Color, Move, Piece } from "../types";
-import {
-  checkCanCastleKingSide,
-  checkCanCastleQueenSide,
-  detectChecks,
-  detectControlsByEnemyKing,
-} from "./check-king-safety";
+import { detectChecks, detectControlsByEnemyKing } from "./check-king-safety";
 import { isOutOfBound, isSameColor } from "./checks";
 import { produce } from "immer";
 import { getPiecesDirection } from "./pieces-directions";
+import {
+  checkCanCastleKingSide,
+  checkCanCastleQueenSide,
+} from "./check-castling";
+import { checkEnPassant, isEnPassantMove } from "./check-en-passant";
 
 interface MovesGeneratorInput {
   board: CellState[][];
@@ -41,6 +41,7 @@ const addMovesIfNotPinned = (
   const currentCell = board[x][y];
   const tempBoard = produce(board, (draft) => {
     draft[newX][newY] = currentCell;
+    if (isEnPassantMove(draft, [newX, newY], [x, y])) draft[x][newY] = null;
     draft[x][y] = null;
   });
   if (
@@ -129,7 +130,7 @@ const generateQueenMoves = (movesGeneratorInput: MovesGeneratorInput) => {
 
 const generateKingMoves = (
   { board, color, currentPosition: [x, y] }: MovesGeneratorInput,
-  moves: Move[][]
+  moves: Move[]
 ) => {
   let validMoves: [number, number][] = [];
   for (const [dx, dy] of getPiecesDirection(Piece.King, color))
@@ -149,12 +150,10 @@ const generateKingMoves = (
   return validMoves;
 };
 
-const generatePawnMoves = ({
-  board,
-  color,
-  currentPosition: [x, y],
-  kingPosition,
-}: MovesGeneratorInput) => {
+const generatePawnMoves = (
+  { board, color, currentPosition: [x, y], kingPosition }: MovesGeneratorInput,
+  moves: Move[]
+) => {
   let validMoves: [number, number][] = [];
   if (color === Color.Black) {
     if (x === FIRST_BLACK_PAWN_ROW && !board[x + 2][y] && !board[x + 1][y])
@@ -177,6 +176,16 @@ const generatePawnMoves = ({
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x + 1, y], kingPosition)
       );
+
+    if (checkEnPassant(moves, [x, y - 1]))
+      validMoves = validMoves.concat(
+        addMovesIfNotPinned(board, color, [x, y], [x + 1, y - 1], kingPosition)
+      );
+
+    if (checkEnPassant(moves, [x, y + 1]))
+      validMoves = validMoves.concat(
+        addMovesIfNotPinned(board, color, [x, y], [x + 1, y + 1], kingPosition)
+      );
   } else {
     if (x === FIRST_WHITE_PAWN_ROW && !board[x - 2][y] && !board[x - 1][y])
       validMoves = validMoves.concat(
@@ -198,6 +207,15 @@ const generatePawnMoves = ({
       validMoves = validMoves.concat(
         addMovesIfNotPinned(board, color, [x, y], [x - 1, y], kingPosition)
       );
+    if (checkEnPassant(moves, [x, y - 1]))
+      validMoves = validMoves.concat(
+        addMovesIfNotPinned(board, color, [x, y], [x - 1, y - 1], kingPosition)
+      );
+
+    if (checkEnPassant(moves, [x, y + 1]))
+      validMoves = validMoves.concat(
+        addMovesIfNotPinned(board, color, [x, y], [x - 1, y + 1], kingPosition)
+      );
   }
   return validMoves;
 };
@@ -205,7 +223,7 @@ const generatePawnMoves = ({
 export const generateMoves = (
   movesGeneratorInput: MovesGeneratorInput,
   piece: Piece,
-  moves: Move[][] = []
+  moves: Move[] = []
 ): [number, number][] => {
   switch (piece) {
     case Piece.Rook:
@@ -219,7 +237,7 @@ export const generateMoves = (
     case Piece.King:
       return generateKingMoves(movesGeneratorInput, moves);
     case Piece.Pawn:
-      return generatePawnMoves(movesGeneratorInput);
+      return generatePawnMoves(movesGeneratorInput, moves);
     default:
       throw new Error("Piece not found");
   }

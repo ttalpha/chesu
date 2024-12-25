@@ -1,9 +1,10 @@
 import { useGameStore } from "./use-game-store";
-import { useState } from "react";
+import { use, useState } from "react";
 import { Color, Piece, PieceMetadata } from "../types";
 import { detectCheckmate, detectStalemate, generateMoves } from "../utils";
 import { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import { produce } from "immer";
+import { BOARD_SIZE } from "../constants";
 
 export const usePiecesDnd = () => {
   const board = useGameStore((state) => state.board);
@@ -11,6 +12,7 @@ export const usePiecesDnd = () => {
   const currentTurn = useGameStore((state) => state.currentTurn);
   const isGameOver = useGameStore((state) => state.isGameOver);
   const movePiece = useGameStore((state) => state.movePiece);
+  const castle = useGameStore((state) => state.castle);
   const changeTurn = useGameStore((state) => state.changeTurn);
   const whiteKingPosition = useGameStore((state) => state.whiteKingPosition);
   const blackKingPosition = useGameStore((state) => state.blackKingPosition);
@@ -25,8 +27,6 @@ export const usePiecesDnd = () => {
       currentTurn === Color.White ? whiteKingPosition : blackKingPosition;
     if (isGameOver || boardPiece.color !== currentTurn) setValidMoves([]);
     else {
-      if (boardPiece.piece === Piece.King) {
-      }
       setValidMoves(
         generateMoves(
           {
@@ -50,6 +50,7 @@ export const usePiecesDnd = () => {
       if (boardPiece.piece === Piece.King)
         setKingPosition(currentTurn, [+newRow, +newCol]);
       setValidMoves([]);
+      castle([row, col], [+newRow, +newCol]);
       movePiece([row, col], [+newRow, +newCol]);
 
       const kingPosition =
@@ -58,8 +59,11 @@ export const usePiecesDnd = () => {
       const latestBoard = produce(board, (draft) => {
         [draft[row][col], draft[+newRow][+newCol]] = [null, draft[row][col]];
       });
-      if (detectCheckmate(latestBoard, loser, kingPosition))
-        endGame(currentTurn);
+      const isPromotion =
+        boardPiece.piece === Piece.Pawn &&
+        (+newRow === 0 || +newRow === BOARD_SIZE - 1);
+      if (isPromotion) return;
+      if (useGameStore.getState().moves.at(-1)?.checkmate) endGame(currentTurn);
       else if (detectStalemate(latestBoard, loser, kingPosition)) endGame(null);
       else changeTurn();
     }

@@ -22,21 +22,25 @@ export const Game = () => {
   }, [isGameOver]);
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
-      <h3 className="text-center text-2xl font-semibold">
-        {!isGameOver
-          ? `${currentTurn} turn to move`
-          : winner
-          ? `${winner} wins by checkmating`
-          : "Stalemate"}
-      </h3>
-      {isGameOver && (
-        <p className="text-center text-gray-600">Press R to play again</p>
-      )}
-      <div className="flex gap-8">
-        <DndContext {...dragEvents}>
-          <Board validMoves={validMoves} />
-        </DndContext>
+    <div className="max-w-4xl mx-auto">
+      <div className="flex items-end gap-8">
+        <div>
+          <h3 className="text-center text-xl font-semibold">
+            {!isGameOver
+              ? `${currentTurn} turn to move`
+              : winner
+              ? `${winner} wins by checkmate`
+              : "Stalemate"}
+          </h3>
+          {isGameOver && (
+            <p className="text-center text-gray-600">Press R to play again</p>
+          )}
+          <div className="mt-6">
+            <DndContext {...dragEvents}>
+              <Board validMoves={validMoves} />
+            </DndContext>
+          </div>
+        </div>
         <Moves />
       </div>
     </div>

@@ -16,7 +16,7 @@ export const ChessPiece: React.FC<ChessPieceProps> = ({ boardPiece }) => {
     <Image
       className={cn(currentTurn === boardPiece.color && "cursor-grab")}
       alt={`${color} ${pieceName}`}
-      src={`/assets/pieces/${color}-${pieceName}.svg`}
+      src={`/assets/pieces/${color[0]}${boardPiece.piece}.svg`}
       width={60}
       height={60}
     />

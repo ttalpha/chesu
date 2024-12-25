@@ -30,7 +30,9 @@ export interface Move {
   from: [number, number];
   to: [number, number];
   check: boolean;
+  promotionPiece?: Piece;
   checkmate: boolean;
+  isEnPassant: boolean;
   kingSideCastle: boolean;
   queenSideCastle: boolean;
   capture: boolean;

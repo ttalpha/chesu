@@ -1,7 +1,10 @@
 import { cn } from "@/lib/utils";
 import { useDroppable } from "@dnd-kit/core";
-import { DraggablePiece } from "./draggable-piece";
-import { CellState } from "./types";
+import React, { useState } from "react";
+import { CellState, Piece } from "./types";
+import { PromotionPiece } from "./promotion-piece";
+import { useGameStore } from "./hooks";
+import { detectCheckmate, detectStalemate } from "./utils";
 
 interface BoardCellProps {
   cellState: CellState;
@@ -16,9 +19,28 @@ export const BoardCell: React.FC<BoardCellProps> = ({
   cellState,
   validMoves,
 }) => {
+  const endGame = useGameStore((state) => state.endGame);
+  const changeTurn = useGameStore((state) => state.changeTurn);
+  const currentTurn = useGameStore((state) => state.currentTurn);
+  const promotePawn = useGameStore((state) => state.promotePawn);
   const { active, setNodeRef } = useDroppable({
     id: `${row}-${col}`,
   });
+
+  const onPromotion = (piece?: Piece) => {
+    promotePawn([row, col], {
+      piece: piece ?? Piece.Queen,
+      color: cellState!.color,
+    });
+    const board = useGameStore.getState().board;
+    const nextTurn = useGameStore.getState().nextTurn();
+    const kingPosition = useGameStore.getState().opposingKingPosition();
+
+    if (detectCheckmate(board, nextTurn, kingPosition)) endGame(currentTurn);
+    else if (detectStalemate(board, nextTurn, kingPosition)) endGame(null);
+    else changeTurn();
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -28,10 +50,17 @@ export const BoardCell: React.FC<BoardCellProps> = ({
       )}
     >
       {active && validMoves.some(([x, y]) => row === x && col === y) && (
-        <div className="w-6 h-6 z-20 rounded-full absolute bg-green-800/50" />
+        <div className="w-full h-full z-10 absolute bg-green-700/50" />
       )}
       {cellState && (
-        <DraggablePiece row={row} col={col} boardPiece={cellState} />
+        <>
+          <PromotionPiece
+            row={row}
+            col={col}
+            boardPiece={cellState}
+            onPromotion={onPromotion}
+          />
+        </>
       )}
     </div>
   );

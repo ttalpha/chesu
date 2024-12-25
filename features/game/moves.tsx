@@ -1,3 +1,4 @@
+import React from "react";
 import { useGameStore } from "./hooks";
 import { Color } from "./types";
 import { convertCellToPGN } from "./utils";
@@ -7,22 +8,22 @@ export const Moves = () => {
   const winner = useGameStore((state) => state.winner);
   const isGameOver = useGameStore((state) => state.isGameOver);
   return (
-    <div className="h-[512px] overflow-y-auto overflow-x-hidden">
-      <div className="grid grid-cols-3 justify-items-start">
-        {moves.map((move, i) => (
-          <>
-            <div className="text-sm w-fit text-gray-500 font-medium py-2">
-              {i + 1}.
-            </div>
-            {move.map((m) => (
-              <>
-                <button className="text-sm justify-start font-medium px-3 rounded-md hover:bg-gray-200 py-2">
-                  {convertCellToPGN(m)}
-                </button>
-              </>
-            ))}
-          </>
-        ))}
+    <div className="h-[512px] w overflow-y-auto overflow-x-hidden">
+      <div className="grid grid-cols-5 gap-x-3 gap-y-4 text-sm py-2">
+        {Array(Math.ceil(moves.length / 2))
+          .fill(null)
+          .map((_, i) => (
+            <React.Fragment key={i}>
+              <span className="text-muted-foreground">{i + 1}.</span>{" "}
+              <span className="text-primary font-medium col-span-2">
+                {moves[i * 2] && convertCellToPGN(moves[i * 2])}
+              </span>
+              <span className="text-primary font-medium col-span-2">
+                {moves[i * 2 + 1] && convertCellToPGN(moves[i * 2 + 1])}
+              </span>
+            </React.Fragment>
+          ))}
+
         <span className="text-sm justify-start font-medium py-2">
           {isGameOver && winner === null && "1/2-1/2"}
           {winner === Color.White && "1-0"}
