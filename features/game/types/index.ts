@@ -17,6 +17,13 @@ export interface BoardPiece {
   color: Color;
 }
 
+export enum DrawReason {
+  Stalemate = "Stalemate",
+  InsufficientMaterial = "Insufficient Material",
+  ThreefoldRepetition = "Threefold Repetition",
+  FiftyMoveRule = "Fifty-move Rule",
+}
+
 export type CellState = BoardPiece | null;
 
 export interface PieceMetadata {

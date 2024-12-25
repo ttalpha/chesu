@@ -24,3 +24,31 @@ export const convertFenToBoard = (fen: string) => {
   }
   return board;
 };
+
+export const convertBoardToFen = (board: CellState[][]) => {
+  let fen = "";
+  for (let i = BOARD_SIZE - 1; i >= 0; i--) {
+    let emptyCells = 0;
+    for (let j = 0; j < BOARD_SIZE; j++) {
+      const cell = board[i][j];
+      if (cell === null) {
+        emptyCells++;
+      } else {
+        if (emptyCells > 0) {
+          fen += emptyCells;
+          emptyCells = 0;
+        }
+        const char =
+          cell.color === Color.White ? cell.piece : cell.piece.toLowerCase();
+        fen += char;
+      }
+    }
+    if (emptyCells > 0) {
+      fen += emptyCells;
+    }
+    if (i > 0) {
+      fen += "/";
+    }
+  }
+  return fen;
+};

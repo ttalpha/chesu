@@ -131,7 +131,7 @@ export const detectChecks = (
   );
 };
 
-const checkNoValidMoves = (
+export const checkNoValidMoves = (
   board: CellState[][],
   kingColor: Color,
   kingPosition: [number, number]
@@ -160,17 +160,6 @@ export const detectCheckmate = (
 ) => {
   return (
     detectChecks(board, kingColor, kingPosition) &&
-    checkNoValidMoves(board, kingColor, kingPosition)
-  );
-};
-
-export const detectStalemate = (
-  board: CellState[][],
-  kingColor: Color,
-  kingPosition: [number, number]
-) => {
-  return (
-    !detectChecks(board, kingColor, kingPosition) &&
     checkNoValidMoves(board, kingColor, kingPosition)
   );
 };

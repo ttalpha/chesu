@@ -1,10 +1,9 @@
-import { useGameStore } from "./use-game-store";
-import { use, useState } from "react";
-import { Color, Piece, PieceMetadata } from "../types";
-import { detectCheckmate, detectStalemate, generateMoves } from "../utils";
-import { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
-import { produce } from "immer";
+import { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { useState } from "react";
 import { BOARD_SIZE } from "../constants";
+import { Color, Piece, PieceMetadata } from "../types";
+import { checkDrawReason, convertBoardToFen, generateMoves } from "../utils";
+import { useGameStore } from "./use-game-store";
 
 export const usePiecesDnd = () => {
   const board = useGameStore((state) => state.board);
@@ -18,6 +17,8 @@ export const usePiecesDnd = () => {
   const blackKingPosition = useGameStore((state) => state.blackKingPosition);
   const setKingPosition = useGameStore((state) => state.setKingPosition);
   const endGame = useGameStore((state) => state.endGame);
+  const fenHistory = useGameStore((state) => state.fenHistory);
+  const addFenToHistory = useGameStore((state) => state.addFenToHistory);
 
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
 
@@ -53,19 +54,30 @@ export const usePiecesDnd = () => {
       castle([row, col], [+newRow, +newCol]);
       movePiece([row, col], [+newRow, +newCol]);
 
-      const kingPosition =
-        currentTurn === Color.White ? blackKingPosition : whiteKingPosition;
-      const loser = currentTurn === Color.White ? Color.Black : Color.White;
-      const latestBoard = produce(board, (draft) => {
-        [draft[row][col], draft[+newRow][+newCol]] = [null, draft[row][col]];
-      });
+      const kingPosition = useGameStore.getState().opposingKingPosition();
+      const nextTurn = useGameStore.getState().nextTurn();
       const isPromotion =
         boardPiece.piece === Piece.Pawn &&
         (+newRow === 0 || +newRow === BOARD_SIZE - 1);
+
+      const latestBoard = useGameStore.getState().board;
+
+      const newDrawReason = checkDrawReason(
+        latestBoard,
+        nextTurn,
+        kingPosition,
+        moves,
+        fenHistory
+      );
+
       if (isPromotion) return;
-      if (useGameStore.getState().moves.at(-1)?.checkmate) endGame(currentTurn);
-      else if (detectStalemate(latestBoard, loser, kingPosition)) endGame(null);
-      else changeTurn();
+      if (useGameStore.getState().moves.at(-1)?.checkmate)
+        endGame(currentTurn, null);
+      else if (newDrawReason) endGame(null, newDrawReason);
+      else {
+        changeTurn();
+        addFenToHistory(convertBoardToFen(board));
+      }
     }
   }
   function onDragCancel() {

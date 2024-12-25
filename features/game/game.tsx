@@ -11,6 +11,7 @@ export const Game = () => {
   const isGameOver = useGameStore((state) => state.isGameOver);
   const winner = useGameStore((state) => state.winner);
   const reset = useGameStore((state) => state.reset);
+  const drawReason = useGameStore((state) => state.drawReason);
 
   useEffect(() => {
     const restart = (e: KeyboardEvent) => {
@@ -30,7 +31,7 @@ export const Game = () => {
               ? `${currentTurn} turn to move`
               : winner
               ? `${winner} wins by checkmate`
-              : "Stalemate"}
+              : `Draw by ${drawReason}`}
           </h3>
           {isGameOver && (
             <p className="text-center text-gray-600">Press R to play again</p>

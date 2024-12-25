@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import { BoardPiece, CellState, Color, Move, Piece } from "../types";
+import {
+  BoardPiece,
+  CellState,
+  Color,
+  DrawReason,
+  Move,
+  Piece,
+} from "../types";
 import { convertFenToBoard, detectCheckmate, detectChecks } from "../utils";
 import {
   BOARD_SIZE,
@@ -11,6 +18,9 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { isEnPassantMove } from "../utils/check-en-passant";
 import { isCastleMove } from "../utils/check-castling";
+import { enableMapSet } from "immer";
+
+enableMapSet();
 
 interface Action {
   changeTurn: () => void;
@@ -25,12 +35,15 @@ interface Action {
     newPosition: [number, number]
   ) => void;
   promotePawn: (newPosition: [number, number], piece: BoardPiece) => void;
-  endGame: (winner: Color | null) => void;
+  endGame: (winner: Color | null, drawReason: DrawReason | null) => void;
   reset: () => void;
   setKingPosition: (color: Color, newPosition: [number, number]) => void;
+  addFenToHistory: (fen: string) => void;
 }
 
 interface State {
+  fenHistory: Map<string, number>;
+  drawReason: DrawReason | null;
   board: CellState[][];
   currentTurn: Color;
   isGameOver: boolean;
@@ -41,6 +54,8 @@ interface State {
 }
 
 const initialStates: State = {
+  fenHistory: new Map(),
+  drawReason: null,
   board: convertFenToBoard(STARTING_FEN),
   currentTurn: Color.White,
   isGameOver: false,
@@ -142,7 +157,13 @@ export const useGameStore = create<State & Action>()(
             kingSideCastle,
             queenSideCastle,
           };
+
           state.moves.push(newMove);
+        }),
+      addFenToHistory: (fen: string) =>
+        set((state) => {
+          const count = state.fenHistory.get(fen) || 0;
+          state.fenHistory.set(fen, count + 1);
         }),
       nextTurn: () =>
         get().currentTurn === Color.White ? Color.Black : Color.White,
@@ -155,19 +176,22 @@ export const useGameStore = create<State & Action>()(
           if (color === Color.White) state.whiteKingPosition = newPosition;
           else state.blackKingPosition = newPosition;
         }),
-      endGame: (winner) =>
+      endGame: (winner, drawReason) =>
         set((state) => {
           state.winner = winner;
           state.isGameOver = true;
+          state.drawReason = drawReason;
         }),
       reset: () =>
         set((state) => {
           state.isGameOver = false;
           state.winner = null;
+          state.fenHistory = new Map();
           state.board = initialStates.board;
           state.currentTurn = Color.White;
           state.whiteKingPosition = FIRST_WHITE_KING_POSITION;
           state.blackKingPosition = FIRST_BLACK_KING_POSITION;
+          state.drawReason = null;
           state.moves = [];
         }),
     }))

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { CellState, Piece } from "./types";
 import { PromotionPiece } from "./promotion-piece";
 import { useGameStore } from "./hooks";
-import { detectCheckmate, detectStalemate } from "./utils";
+import { checkDrawReason, convertBoardToFen, detectCheckmate } from "./utils";
 
 interface BoardCellProps {
   cellState: CellState;
@@ -26,6 +26,7 @@ export const BoardCell: React.FC<BoardCellProps> = ({
   const { active, setNodeRef } = useDroppable({
     id: `${row}-${col}`,
   });
+  const addFenToHistory = useGameStore((state) => state.addFenToHistory);
 
   const onPromotion = (piece?: Piece) => {
     promotePawn([row, col], {
@@ -35,10 +36,24 @@ export const BoardCell: React.FC<BoardCellProps> = ({
     const board = useGameStore.getState().board;
     const nextTurn = useGameStore.getState().nextTurn();
     const kingPosition = useGameStore.getState().opposingKingPosition();
+    const moves = useGameStore.getState().moves;
+    const fenHistory = useGameStore.getState().fenHistory;
 
-    if (detectCheckmate(board, nextTurn, kingPosition)) endGame(currentTurn);
-    else if (detectStalemate(board, nextTurn, kingPosition)) endGame(null);
-    else changeTurn();
+    const newDrawReason = checkDrawReason(
+      board,
+      nextTurn,
+      kingPosition,
+      moves,
+      fenHistory
+    );
+
+    if (detectCheckmate(board, nextTurn, kingPosition))
+      endGame(currentTurn, null);
+    else if (newDrawReason) endGame(currentTurn, newDrawReason);
+    else {
+      changeTurn();
+      addFenToHistory(convertBoardToFen(board));
+    }
   };
 
   return (
